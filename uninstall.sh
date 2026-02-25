@@ -28,4 +28,5 @@ done
 
 echo ""
 echo "All scheduled tasks removed."
-echo "Project files remain in place. Delete the project directory manually if needed."
+echo "Project files and logs remain in place."
+echo "Delete the project directory manually if needed."

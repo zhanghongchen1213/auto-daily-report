@@ -1,23 +1,21 @@
 #!/bin/bash
-# run-claude-tmux.sh - 打开可视化终端，启动 Claude CLI 交互模式，发送 prompt
-# 用法: run-claude-tmux.sh <prompt_file> <log_file> [model] [max_turns]
+# run-claude-tmux.sh - 启动可视化终端运行 Claude CLI 并执行指定 skill
+# 用法: run-claude-tmux.sh <skill-name> [log-file]
 #
-# 流程：tmux 会话 → iTerm 可视化窗口 → claude 交互模式 → bracketed paste 发送 prompt
-# Claude 交互模式自动加载 ~/.claude/.mcp.json，无需显式配置 MCP。
+# 流程：tmux 会话 → iTerm 可视化窗口 → Claude 交互模式 → 发送 skill 命令 → 等待1小时 → 关闭
 
 set -euo pipefail
 
 # ── 参数解析 ──
-PROMPT_FILE="${1:?Usage: run-claude-tmux.sh <prompt_file> <log_file> [model] [max_turns]}"
-LOG_FILE="${2:?Usage: run-claude-tmux.sh <prompt_file> <log_file> [model] [max_turns]}"
-CLAUDE_MODEL="${3:-sonnet}"
-MAX_TURNS="${4:-25}"
+SKILL_NAME="${1:?Usage: run-claude-tmux.sh <skill-name> [log-file]}"
+LOG_FILE="${2:-}"
 
 # ── 配置 ──
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="$PROJECT_DIR/config.json"
 
+# 从 config.json 读取 Claude CLI 路径和模型
 CLAUDE_CLI=$(python3 -c "
 import json
 with open('$CONFIG_FILE') as f:
@@ -25,15 +23,27 @@ with open('$CONFIG_FILE') as f:
 print(config.get('claude', {}).get('cli_path', 'claude'))
 ")
 
+CLAUDE_MODEL=$(python3 -c "
+import json
+with open('$CONFIG_FILE') as f:
+    config = json.load(f)
+print(config.get('claude', {}).get('model', 'sonnet'))
+")
+
+# 默认日志路径
+if [ -z "$LOG_FILE" ]; then
+  LOG_DIR="$PROJECT_DIR/logs"
+  mkdir -p "$LOG_DIR"
+  LOG_FILE="$LOG_DIR/${SKILL_NAME}-$(date +%Y%m%d).log"
+fi
+
 SESSION_NAME="claude-report-$(date +%s)"
-MAX_WAIT=600
-POLL_INTERVAL=10
+WAIT_TIME=3600
 
 # ── 前置检查 ──
 for cmd in tmux python3; do
   command -v "$cmd" &>/dev/null || { echo "Error: $cmd not found" >&2; exit 1; }
 done
-[ -f "$PROMPT_FILE" ] || { echo "Error: Prompt not found: $PROMPT_FILE" >&2; exit 1; }
 [ -x "$CLAUDE_CLI" ] || { echo "Error: Claude CLI not executable: $CLAUDE_CLI" >&2; exit 1; }
 
 # ── 日志 ──
@@ -80,9 +90,9 @@ sleep 2
 # ══════════════════════════════════════════════════════════════
 # Step 2: 在 tmux 中启动 Claude CLI 交互模式
 # ══════════════════════════════════════════════════════════════
-log "Starting Claude CLI (model: $CLAUDE_MODEL, max-turns: $MAX_TURNS)"
+log "Starting Claude CLI (model: $CLAUDE_MODEL, skill: $SKILL_NAME)"
 tmux send-keys -t "$SESSION_NAME" \
-  "cd '$PROJECT_DIR' && '$CLAUDE_CLI' --model '$CLAUDE_MODEL' --max-turns $MAX_TURNS" \
+  "cd '$PROJECT_DIR' && '$CLAUDE_CLI' --model '$CLAUDE_MODEL' --allowedTools 'mcp__notion__*'" \
   Enter
 
 # 等待 Claude 初始化，验证其真正启动
@@ -99,8 +109,8 @@ for i in $(seq 1 12); do
     continue
   fi
 
-  # 检测 Claude 输入提示符（表示已就绪）
-  if echo "$PANE" | grep -qE '>\s*$'; then
+  # 检测 Claude 输入提示符（❯ 或 >，表示已就绪）
+  if echo "$PANE" | grep -qE '(❯|>)\s*$'; then
     INIT_OK=true
     log "Claude is ready (waited ${i}x5s)"
     break
@@ -121,64 +131,25 @@ if [ "$INIT_OK" != true ]; then
 fi
 
 # ══════════════════════════════════════════════════════════════
-# Step 3: 通过 bracketed paste 发送长 prompt
-# -p 标志启用 bracketed paste mode，换行不会触发提交
+# Step 3: 发送 skill 命令
 # ══════════════════════════════════════════════════════════════
-log "Sending prompt via bracketed paste: $PROMPT_FILE"
-tmux load-buffer -b prompt-buf "$PROMPT_FILE"
-tmux paste-buffer -t "$SESSION_NAME" -b prompt-buf -d -p
-sleep 1
-
-# 发送 Enter 提交 prompt
-tmux send-keys -t "$SESSION_NAME" Enter
-log "Prompt submitted, waiting for Claude to process..."
+log "Sending skill command: /$SKILL_NAME"
+tmux send-keys -t "$SESSION_NAME" "/$SKILL_NAME" Enter
+log "Skill command submitted, waiting ${WAIT_TIME}s for completion..."
 
 # ══════════════════════════════════════════════════════════════
-# Step 4: 轮询检测 Claude 是否完成
-# 交互模式完成标志：输入提示符重新出现（> 或 ❯）
+# Step 4: 等待1小时，然后退出 Claude 并记录结果
 # ══════════════════════════════════════════════════════════════
-ELAPSED=0
-COMPLETED=false
+sleep "$WAIT_TIME"
 
-# 先等 30 秒，给 Claude 处理时间
-sleep 30
-ELAPSED=30
-
-while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
-  sleep "$POLL_INTERVAL"
-  ELAPSED=$((ELAPSED + POLL_INTERVAL))
-
-  PANE_TAIL=$(tmux capture-pane -t "$SESSION_NAME" -p -S -5 2>/dev/null || echo "")
-
-  # 检测 Claude 回到空闲输入状态
-  if echo "$PANE_TAIL" | grep -qE '>\s*$'; then
-    sleep 5
-    RECHECK=$(tmux capture-pane -t "$SESSION_NAME" -p -S -3 2>/dev/null || echo "")
-    if echo "$RECHECK" | grep -qE '>\s*$'; then
-      COMPLETED=true
-      break
-    fi
-  fi
-
-  log "Still processing... (${ELAPSED}s / ${MAX_WAIT}s)"
-done
-
-# ══════════════════════════════════════════════════════════════
-# Step 5: 捕获输出，退出 Claude，记录结果
-# ══════════════════════════════════════════════════════════════
+# 捕获输出
 log "Capturing Claude output..."
 tmux capture-pane -t "$SESSION_NAME" -p -S -3000 >> "$LOG_FILE" 2>/dev/null || true
 
-if [ "$COMPLETED" = true ]; then
-  log "Claude completed successfully (${ELAPSED}s elapsed)"
-  # 发送 /exit 退出 Claude CLI
-  tmux send-keys -t "$SESSION_NAME" "/exit" Enter
-  sleep 2
-  exit 0
-else
-  log "Error: Claude did not complete within ${MAX_WAIT}s timeout"
-  # 超时也尝试退出
-  tmux send-keys -t "$SESSION_NAME" "/exit" Enter
-  sleep 2
-  exit 1
-fi
+# 发送 /exit 退出 Claude CLI
+log "Sending /exit to Claude..."
+tmux send-keys -t "$SESSION_NAME" "/exit" Enter
+sleep 2
+
+log "Session completed (skill: $SKILL_NAME, waited: ${WAIT_TIME}s)"
+exit 0

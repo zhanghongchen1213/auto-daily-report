@@ -7,16 +7,17 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/weekly-report.sh</string>
+        <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/run-claude-tmux.sh</string>
+        <string>weekly-report</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
         <key>Weekday</key>
-        <integer>6</integer>
+        <integer>0</integer>
         <key>Hour</key>
-        <integer>16</integer>
+        <integer>22</integer>
         <key>Minute</key>
-        <integer>30</integer>
+        <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
     <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/logs/launchd-weekly.out.log</string>

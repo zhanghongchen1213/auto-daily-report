@@ -7,7 +7,8 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/daily-report.sh</string>
+        <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/run-claude-tmux.sh</string>
+        <string>daily-report</string>
     </array>
     <key>StartCalendarInterval</key>
     <array>

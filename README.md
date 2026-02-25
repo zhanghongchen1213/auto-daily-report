@@ -1,8 +1,8 @@
 # Auto Daily Report
 
-基于 Claude CLI + Notion MCP 的工作日报/周报/月报自动化生成系统。
+基于 Claude CLI Skills + Notion MCP 的工作日报/周报/月报自动化系统。
 
-通过 macOS launchd 定时调度，自动读取 Git 提交记录和 Notion Activity Logs，生成结构化报告并写入 Notion 数据库。
+通过 macOS launchd 定时调度，自动收集 Git 提交记录和 Notion Activity Logs，由 Claude CLI Skills 生成结构化报告并写入 Notion 数据库。
 
 ## 系统架构
 
@@ -10,44 +10,43 @@
 定时触发 (launchd)
     │
     ├── 日报 (周一~周六 22:00)
-    │     ├── 收集 Git 提交日志
-    │     ├── 查询 Notion Activity Logs
-    │     ├── Claude 生成 6 段式日报
-    │     └── 写入 Notion 日报数据库
+    │     └── run-claude-tmux.sh daily-report
+    │           └── Claude CLI → /daily-report skill
+    │                 ├── 收集 Git 提交日志
+    │                 ├── 查询 Notion Activity Logs
+    │                 ├── 生成结构化日报
+    │                 └── 写入 Notion 日报数据库
     │
-    ├── 周报 (周六 16:30)
-    │     ├── 查询本周已完成日报
-    │     ├── Claude 跨天去重 + 趋势分析
-    │     └── 写入 Notion 周报数据库
+    ├── 周报 (周日 22:00)
+    │     └── run-claude-tmux.sh weekly-report
+    │           └── Claude CLI → /weekly-report skill
     │
-    └── 月报 (每月最后工作日 17:00)
-          ├── 查询本月所有周报
-          ├── Claude 跨周去重 + 里程碑识别
-          └── 写入 Notion 月报数据库
+    └── 月报 (月底 22:00)
+          └── run-claude-tmux.sh monthly-report
+                └── Claude CLI → /monthly-report skill
 ```
 
 ## 项目结构
 
 ```
 auto-daily-report/
-├── config.json                              # 配置文件
+├── .claude/
+│   └── skills/
+│       ├── daily-report.md          # 日报生成 skill
+│       ├── weekly-report.md         # 周报生成 skill
+│       └── monthly-report.md        # 月报生成 skill
+├── config.json                      # 配置文件
 ├── scripts/
-│   ├── gather-git-logs.sh                   # Git 日志收集（支持本地路径和远程 URL）
-│   ├── daily-report.sh                      # 日报生成入口
-│   ├── weekly-report.sh                     # 周报生成入口
-│   └── monthly-report.sh                    # 月报生成入口
-├── prompts/
-│   ├── daily-report-prompt.prompt           # 日报 Claude 提示词模板
-│   ├── weekly-report-prompt.prompt          # 周报 Claude 提示词模板
-│   └── monthly-report-prompt.prompt         # 月报 Claude 提示词模板
+│   ├── run-claude-tmux.sh           # tmux 自动化执行器
+│   └── gather-git-logs.sh           # Git 日志收集
 ├── launchd/
-│   ├── com.auto-report.daily.plist          # 日报定时任务
-│   ├── com.auto-report.weekly.plist         # 周报定时任务
-│   └── com.auto-report.monthly.plist        # 月报定时任务
-├── install.sh                               # 安装定时任务
-├── uninstall.sh                             # 卸载定时任务
-├── test.sh                                  # 系统自检
-└── .gitignore
+│   ├── com.auto-report.daily.plist
+│   ├── com.auto-report.weekly.plist
+│   └── com.auto-report.monthly.plist
+├── install.sh
+├── uninstall.sh
+├── test.sh
+└── logs/
 ```
 
 ## 前置要求
@@ -56,6 +55,7 @@ auto-daily-report/
 - [Claude CLI](https://docs.anthropic.com/en/docs/claude-code) v2.x+
 - Git
 - Python 3（macOS 自带）
+- tmux
 - Notion MCP Server 已配置（`~/.claude/.mcp.json`）
 
 ## 快速开始
@@ -89,17 +89,17 @@ bash test.sh
 bash install.sh
 ```
 
-### 4. 手动触发（测试用）
+### 4. 手动触发
 
 ```bash
-# 立即生成今日日报
-bash scripts/daily-report.sh
+# 手动执行日报
+bash scripts/run-claude-tmux.sh daily-report
 
-# 立即生成本周周报
-bash scripts/weekly-report.sh
+# 手动执行周报
+bash scripts/run-claude-tmux.sh weekly-report
 
-# 强制生成本月月报（跳过"最后工作日"检查）
-bash scripts/monthly-report.sh --force
+# 手动执行月报
+bash scripts/run-claude-tmux.sh monthly-report
 ```
 
 ### 5. 卸载
@@ -113,17 +113,15 @@ bash uninstall.sh
 | 报告类型 | 触发时间 | launchd plist |
 |---------|---------|---------------|
 | 日报 | 周一至周六 22:00 | `com.auto-report.daily.plist` |
-| 周报 | 周六 16:30 | `com.auto-report.weekly.plist` |
-| 月报 | 每月 28-31 日 17:00 | `com.auto-report.monthly.plist` |
-
-月报脚本内置了"最后工作日"判断逻辑：在 28-31 日每天都会被 launchd 触发，但只有当天确实是该月最后一个工作日（周一至周五）时才会执行生成。
+| 周报 | 周日 22:00 | `com.auto-report.weekly.plist` |
+| 月报 | 月底 22:00 | `com.auto-report.monthly.plist` |
 
 ## Notion 数据库
 
 | 数据库 | 用途 | ID |
 |--------|------|-----|
-| Activity Logs | 每日活动记录（数据源） | `2e0be665-a1c7-8011-afd5-c9dcf345b1a5` |
-| 每日工作日报 | 日报输出目标 | `2e0be665-a1c7-8110-b3ef-f939ed259679` |
+| Activity Logs | 每日活动记录（数据源） | `d78211d9-eddb-4095-a93a-d1f5640e4c02` |
+| 每日工作日报 | 日报输出目标 | `c7b19046-7ddf-44ec-b0f2-839577df4cbe` |
 | 每周工作周报 | 周报输出目标 | `7ccdc19a-e680-478b-950f-d89399001571` |
 | 每月工作月报 | 月报输出目标 | `7b70e2ab-eae8-4f4e-b1b3-4054b4df0a48` |
 
