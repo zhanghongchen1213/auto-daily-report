@@ -13,22 +13,6 @@ LOG_FILE="${2:-}"
 # ── 配置 ──
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-CONFIG_FILE="$PROJECT_DIR/config.json"
-
-# 从 config.json 读取 Claude CLI 路径和模型
-CLAUDE_CLI=$(python3 -c "
-import json
-with open('$CONFIG_FILE') as f:
-    config = json.load(f)
-print(config.get('claude', {}).get('cli_path', 'claude'))
-")
-
-CLAUDE_MODEL=$(python3 -c "
-import json
-with open('$CONFIG_FILE') as f:
-    config = json.load(f)
-print(config.get('claude', {}).get('model', 'sonnet'))
-")
 
 # 默认日志路径
 if [ -z "$LOG_FILE" ]; then
@@ -41,10 +25,9 @@ SESSION_NAME="claude-report-$(date +%s)"
 WAIT_TIME=3600
 
 # ── 前置检查 ──
-for cmd in tmux python3; do
+for cmd in tmux claude; do
   command -v "$cmd" &>/dev/null || { echo "Error: $cmd not found" >&2; exit 1; }
 done
-[ -x "$CLAUDE_CLI" ] || { echo "Error: Claude CLI not executable: $CLAUDE_CLI" >&2; exit 1; }
 
 # ── 日志 ──
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
@@ -90,9 +73,9 @@ sleep 2
 # ══════════════════════════════════════════════════════════════
 # Step 2: 在 tmux 中启动 Claude CLI 交互模式
 # ══════════════════════════════════════════════════════════════
-log "Starting Claude CLI (model: $CLAUDE_MODEL, skill: $SKILL_NAME)"
+log "Starting Claude CLI (skill: $SKILL_NAME)"
 tmux send-keys -t "$SESSION_NAME" \
-  "cd '$PROJECT_DIR' && '$CLAUDE_CLI' --model '$CLAUDE_MODEL'" \
+  "cd '$PROJECT_DIR' && claude" \
   Enter
 
 # 等待 Claude 初始化，验证其真正启动
