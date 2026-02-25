@@ -34,7 +34,7 @@
   },
   "claude": {
     "cli_path": "/Users/xiaozhangxuezhang/.npm-global/bin/claude",
-    "model": "claude-Opus"
+    "model": "claude-sonnet-4-20250514"
   },
   "logging": {
     "dir": "logs",

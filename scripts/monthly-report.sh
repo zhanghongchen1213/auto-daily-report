@@ -1,8 +1,11 @@
 #!/bin/bash
-# monthly-report.sh - 通过 Claude + Notion MCP 汇总周报生成月报
-# 读取当月周报并生成完整月度总结
+# monthly-report.sh - 通过 tmux + Claude CLI 交互模式汇总周报生成月报
+# Claude 交互模式自动加载 ~/.claude/.mcp.json，无需显式配置 MCP
 
 set -euo pipefail
+
+# 确保 PATH 包含 node/npx
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
 
 # 定位脚本目录与项目根目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -10,6 +13,8 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # 配置与模板路径
 CONFIG_FILE="$PROJECT_DIR/config.json"
 PROMPT_FILE="$PROJECT_DIR/prompts/monthly-report-prompt.prompt"
+# tmux 执行器
+TMUX_RUNNER="$SCRIPT_DIR/run-claude-tmux.sh"
 # 日志目录
 LOG_DIR="$PROJECT_DIR/logs"
 
@@ -24,17 +29,17 @@ if [ ! -f "$PROMPT_FILE" ]; then
   exit 1
 fi
 
-# 从配置中读取 Claude CLI 路径
-CLAUDE_CLI=$(python3 -c "
+# 从配置中读取模型
+CLAUDE_MODEL=$(python3 -c "
 import json
 with open('$CONFIG_FILE') as f:
     config = json.load(f)
-print(config.get('claude', {}).get('cli_path', 'claude'))
+print(config.get('claude', {}).get('model', 'sonnet'))
 ")
 
-# Claude CLI 必须可执行
-if [ ! -x "$CLAUDE_CLI" ]; then
-  echo "Error: Claude CLI not found or not executable at $CLAUDE_CLI" >&2
+# 校验 tmux 执行器
+if [ ! -x "$TMUX_RUNNER" ]; then
+  echo "Error: tmux runner not found at $TMUX_RUNNER" >&2
   exit 1
 fi
 
@@ -100,19 +105,17 @@ with open('$TEMP_PROMPT', 'w') as f:
     f.write(content)
 PYEOF
 
-# 调用 Claude 生成月报（通过 stdin 管道传递 prompt）
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Invoking Claude CLI for monthly report generation..." | tee -a "$LOG_FILE"
+# 调用 tmux 执行器生成月报
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Invoking Claude via tmux runner..." | tee -a "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Model: $CLAUDE_MODEL" | tee -a "$LOG_FILE"
 
-cat "$TEMP_PROMPT" | "$CLAUDE_CLI" -p \
-  --allowedTools "mcp__notion__*" \
-  2>&1 | tee -a "$LOG_FILE"
-
-EXIT_CODE=${PIPESTATUS[1]}
+"$TMUX_RUNNER" "$TEMP_PROMPT" "$LOG_FILE" "$CLAUDE_MODEL" 25
+EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Monthly report generation completed successfully" | tee -a "$LOG_FILE"
 else
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: Claude CLI exited with code $EXIT_CODE" | tee -a "$LOG_FILE"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: tmux runner exited with code $EXIT_CODE" | tee -a "$LOG_FILE"
   exit $EXIT_CODE
 fi
 
