@@ -92,7 +92,7 @@ sleep 2
 # ══════════════════════════════════════════════════════════════
 log "Starting Claude CLI (model: $CLAUDE_MODEL, skill: $SKILL_NAME)"
 tmux send-keys -t "$SESSION_NAME" \
-  "cd '$PROJECT_DIR' && '$CLAUDE_CLI' --model '$CLAUDE_MODEL' --allowedTools 'mcp__notion__*'" \
+  "cd '$PROJECT_DIR' && '$CLAUDE_CLI' --model '$CLAUDE_MODEL' --dangerously-skip-permissions" \
   Enter
 
 # 等待 Claude 初始化，验证其真正启动
@@ -109,8 +109,8 @@ for i in $(seq 1 12); do
     continue
   fi
 
-  # 检测 Claude 输入提示符（❯ 或 >，表示已就绪）
-  if echo "$PANE" | grep -qE '(❯|>)\s*$'; then
+  # 检测 Claude 输入提示符（行首 ❯ 或 >，表示已就绪）
+  if echo "$PANE" | grep -qE '^\s*(❯|>)'; then
     INIT_OK=true
     log "Claude is ready (waited ${i}x5s)"
     break
@@ -134,7 +134,9 @@ fi
 # Step 3: 发送 skill 命令
 # ══════════════════════════════════════════════════════════════
 log "Sending skill command: /$SKILL_NAME"
-tmux send-keys -t "$SESSION_NAME" "/$SKILL_NAME" Enter
+tmux send-keys -t "$SESSION_NAME" "/$SKILL_NAME"
+sleep 2
+tmux send-keys -t "$SESSION_NAME" Enter
 log "Skill command submitted, waiting ${WAIT_TIME}s for completion..."
 
 # ══════════════════════════════════════════════════════════════
