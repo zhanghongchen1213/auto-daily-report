@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.auto-report.monthly</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/monthly-report.sh</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <array>
+        <!-- Run on 28th, 29th, 30th, 31st at 17:00 -->
+        <!-- The script itself checks if today is the last working day -->
+        <dict>
+            <key>Day</key>
+            <integer>28</integer>
+            <key>Hour</key>
+            <integer>17</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Day</key>
+            <integer>29</integer>
+            <key>Hour</key>
+            <integer>17</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Day</key>
+            <integer>30</integer>
+            <key>Hour</key>
+            <integer>17</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Day</key>
+            <integer>31</integer>
+            <key>Hour</key>
+            <integer>17</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+    <key>StandardOutPath</key>
+    <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/logs/launchd-monthly.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/logs/launchd-monthly.err.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/Users/xiaozhangxuezhang/.npm-global/bin</string>
+        <key>HOME</key>
+        <string>/Users/xiaozhangxuezhang</string>
+    </dict>
+    <key>WorkingDirectory</key>
+    <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report</string>
+</dict>
+</plist>

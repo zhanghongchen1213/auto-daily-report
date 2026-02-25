@@ -1,0 +1,43 @@
+{
+  "github": {
+    "repos": [
+      "/Users/xiaozhangxuezhang/Documents/GitHub/main_control"
+    ],
+    "default_branch": "main"
+  },
+  "notion": {
+    "databases": {
+      "activity_logs": "2e0be665-a1c7-806e-8cfe-e5af8a80d291",
+      "daily_report": "c7b19046-7ddf-44ec-b0f28-39577df4cbe",
+      "weekly_report": "2e0be665-a1c7-808d-9482-e22eb84b5469",
+      "monthly_report": "26805e69-c1f7-4fce-8fee-afea1159929f"
+    },
+    "pages": {
+      "daily_assistant": "691c051b-6dfe-40a1-aece-ed310d964ba8",
+      "weekly_assistant": "2e0be665-a1c7-808d-9482-e22eb84b5469",
+      "monthly_assistant": "26805e69-c1f7-4fce-8fee-afea1159929f"
+    }
+  },
+  "schedule": {
+    "daily": {
+      "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      "time": "22:00"
+    },
+    "weekly": {
+      "day": "Saturday",
+      "time": "16:30"
+    },
+    "monthly": {
+      "rule": "last_working_day",
+      "time": "17:00"
+    }
+  },
+  "claude": {
+    "cli_path": "/Users/xiaozhangxuezhang/.npm-global/bin/claude",
+    "model": "claude-sonnet-4-20250514"
+  },
+  "logging": {
+    "dir": "logs",
+    "max_files": 30
+  }
+}
