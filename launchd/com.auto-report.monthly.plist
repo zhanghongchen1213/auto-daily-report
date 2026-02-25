@@ -7,17 +7,18 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/monthly-report.sh</string>
+        <string>/Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/run-claude-tmux.sh</string>
+        <string>monthly-report</string>
     </array>
     <key>StartCalendarInterval</key>
     <array>
-        <!-- Run on 28th, 29th, 30th, 31st at 17:00 -->
+        <!-- Run on 28th, 29th, 30th, 31st at 22:00 -->
         <!-- The script itself checks if today is the last working day -->
         <dict>
             <key>Day</key>
             <integer>28</integer>
             <key>Hour</key>
-            <integer>17</integer>
+            <integer>22</integer>
             <key>Minute</key>
             <integer>0</integer>
         </dict>
@@ -25,7 +26,7 @@
             <key>Day</key>
             <integer>29</integer>
             <key>Hour</key>
-            <integer>17</integer>
+            <integer>22</integer>
             <key>Minute</key>
             <integer>0</integer>
         </dict>
@@ -33,7 +34,7 @@
             <key>Day</key>
             <integer>30</integer>
             <key>Hour</key>
-            <integer>17</integer>
+            <integer>22</integer>
             <key>Minute</key>
             <integer>0</integer>
         </dict>
@@ -41,7 +42,7 @@
             <key>Day</key>
             <integer>31</integer>
             <key>Hour</key>
-            <integer>17</integer>
+            <integer>22</integer>
             <key>Minute</key>
             <integer>0</integer>
         </dict>

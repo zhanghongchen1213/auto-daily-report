@@ -24,12 +24,12 @@
       "time": "22:00"
     },
     "weekly": {
-      "day": "Saturday",
-      "time": "16:30"
+      "day": "Sunday",
+      "time": "22:00"
     },
     "monthly": {
-      "rule": "last_working_day",
-      "time": "17:00"
+      "rule": "last_day_of_month",
+      "time": "22:00"
     }
   },
   "claude": {
