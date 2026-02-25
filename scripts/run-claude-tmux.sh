@@ -8,6 +8,17 @@ set -euo pipefail
 
 # ── 参数解析 ──
 SKILL_NAME="${1:?Usage: run-claude-tmux.sh <skill-name> [log-file]}"
+
+# ── 月报月末判断 ──
+if [ "$SKILL_NAME" = "monthly-report" ]; then
+  TODAY_DAY=$(date +%d)
+  LAST_DAY=$(date -v+1m -v1d -v-1d +%d 2>/dev/null || python3 -c "import calendar; from datetime import datetime; t=datetime.now(); print(calendar.monthrange(t.year,t.month)[1])")
+  if [ "$TODAY_DAY" != "$LAST_DAY" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Skipping monthly-report: today ($TODAY_DAY) is not last day of month ($LAST_DAY)"
+    exit 0
+  fi
+fi
+
 LOG_FILE="${2:-}"
 
 # ── 配置 ──
@@ -22,7 +33,7 @@ if [ -z "$LOG_FILE" ]; then
 fi
 
 SESSION_NAME="claude-report-$(date +%s)"
-WAIT_TIME=3600
+WAIT_TIME=3600         # 等待1小时后自动关闭
 
 # ── 前置检查 ──
 for cmd in tmux claude; do
@@ -31,6 +42,15 @@ done
 
 # ── 日志 ──
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
+
+# ── 日志轮转 ──
+rotate_logs() {
+  local max_days=30
+  find "$PROJECT_DIR/logs" -name "*.log" -mtime +$max_days -delete 2>/dev/null || true
+  local count=$(find "$PROJECT_DIR/logs" -name "*.log" 2>/dev/null | wc -l)
+  log "Log rotation: cleaned files older than ${max_days}d, ${count} logs remaining"
+}
+rotate_logs
 
 # ── 清理 ──
 cleanup() {
@@ -121,21 +141,22 @@ log "Sending skill command: /$SKILL_NAME"
 tmux send-keys -t "$SESSION_NAME" "/$SKILL_NAME"
 sleep 2
 tmux send-keys -t "$SESSION_NAME" Enter
-log "Skill command submitted, waiting ${WAIT_TIME}s for completion..."
+log "Skill command submitted, waiting ${WAIT_TIME}s before closing..."
 
 # ══════════════════════════════════════════════════════════════
-# Step 4: 等待1小时，然后退出 Claude 并记录结果
+# Step 4: 等待固定时间后关闭
 # ══════════════════════════════════════════════════════════════
 sleep "$WAIT_TIME"
 
-# 捕获输出
-log "Capturing Claude output..."
+# ══════════════════════════════════════════════════════════════
+# Step 5: 捕获输出并退出
+# ══════════════════════════════════════════════════════════════
+log "Wait time elapsed, capturing output..."
 tmux capture-pane -t "$SESSION_NAME" -p -S -3000 >> "$LOG_FILE" 2>/dev/null || true
 
-# 发送 /exit 退出 Claude CLI
 log "Sending /exit to Claude..."
 tmux send-keys -t "$SESSION_NAME" "/exit" Enter
 sleep 2
 
-log "Session completed (skill: $SKILL_NAME, waited: ${WAIT_TIME}s)"
+log "Session completed (skill: $SKILL_NAME, wait: ${WAIT_TIME}s)"
 exit 0
