@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh - Install auto-report launchd schedules on macOS
+# install.sh - 安装自动报告 launchd 定时任务（macOS）
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -13,55 +13,55 @@ PLISTS=(
   "com.auto-report.monthly.plist"
 )
 
-echo "=== Auto Report Installer ==="
+echo "=== 自动报告安装程序 ==="
 echo ""
 
-# Create logs directory
+# 创建日志目录
 mkdir -p "$LOG_DIR"
-echo "Created logs directory: $LOG_DIR"
+echo "已创建日志目录: $LOG_DIR"
 
-# Make scripts executable
+# 赋予脚本执行权限
 chmod +x "$SCRIPT_DIR/scripts/run-claude-tmux.sh"
 chmod +x "$SCRIPT_DIR/scripts/gather-git-logs.sh"
-echo "Made scripts executable"
+echo "已赋予脚本执行权限"
 
-# Ensure .claude/skills/ directory exists
+# 确保 .claude/skills/ 目录存在
 mkdir -p "$SCRIPT_DIR/.claude/skills"
-echo "Ensured .claude/skills/ directory exists"
+echo "已确认 .claude/skills/ 目录存在"
 
-# Ensure LaunchAgents directory exists
+# 确保 LaunchAgents 目录存在
 mkdir -p "$LAUNCH_AGENTS_DIR"
 
 echo ""
-echo "Installing launchd plists..."
+echo "正在安装 launchd 定时任务..."
 for plist in "${PLISTS[@]}"; do
   SRC="$LAUNCHD_DIR/$plist"
   DST="$LAUNCH_AGENTS_DIR/$plist"
 
   if [ ! -f "$SRC" ]; then
-    echo "  Warning: $SRC not found, skipping"
+    echo "  警告: $SRC 不存在，跳过"
     continue
   fi
 
-  # Unload existing if present
+  # 卸载已有的任务
   if launchctl list | grep -q "${plist%.plist}" 2>/dev/null; then
-    echo "  Unloading existing $plist..."
+    echo "  正在卸载已有的 $plist..."
     launchctl unload "$DST" 2>/dev/null || true
   fi
 
-  # Copy and load
+  # 复制并加载
   cp "$SRC" "$DST"
   launchctl load "$DST"
-  echo "  Loaded: $plist"
+  echo "  已加载: $plist"
 done
 
 echo ""
-echo "Installation complete."
+echo "安装完成。"
 echo ""
-echo "Schedule summary:"
-echo "  Daily:   Mon-Sat at 22:00"
-echo "  Weekly:  Sunday at 22:00"
-echo "  Monthly: End of month at 22:00"
+echo "定时任务概览:"
+echo "  日报:   周一至周六 22:00"
+echo "  周报:   周日 22:00"
+echo "  月报:   每月最后一天 22:00"
 echo ""
-echo "Logs directory: $LOG_DIR"
-echo "To uninstall: bash $SCRIPT_DIR/uninstall.sh"
+echo "日志目录: $LOG_DIR"
+echo "卸载命令: bash $SCRIPT_DIR/uninstall.sh"
