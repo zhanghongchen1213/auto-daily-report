@@ -13,7 +13,10 @@
       "TodoWrite(*)",
       "Task(*)",
       "mcp__notion__*",
-      "mcp__plugin*"
-    ]
+      "mcp__plugin_claude-mem_mcp-search__*",
+      "mcp__plugin_context7_context7__*",
+      "mcp__chrome-devtools__*"
+    ],
+    "defaultMode": "dontAsk"
   }
 }

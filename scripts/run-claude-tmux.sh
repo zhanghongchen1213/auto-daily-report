@@ -92,7 +92,7 @@ sleep 2
 # ══════════════════════════════════════════════════════════════
 log "Starting Claude CLI (model: $CLAUDE_MODEL, skill: $SKILL_NAME)"
 tmux send-keys -t "$SESSION_NAME" \
-  "cd '$PROJECT_DIR' && '$CLAUDE_CLI' --model '$CLAUDE_MODEL' --dangerously-skip-permissions" \
+  "cd '$PROJECT_DIR' && '$CLAUDE_CLI' --model '$CLAUDE_MODEL'" \
   Enter
 
 # 等待 Claude 初始化，验证其真正启动
@@ -128,6 +128,7 @@ if [ "$INIT_OK" != true ]; then
   log "Error: Claude did not become ready within 60s"
   tmux capture-pane -t "$SESSION_NAME" -p -S -20 >> "$LOG_FILE" 2>/dev/null
   exit 1
+
 fi
 
 # ══════════════════════════════════════════════════════════════
