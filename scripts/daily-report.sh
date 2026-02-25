@@ -1,30 +1,36 @@
 #!/bin/bash
-# daily-report.sh - 通过 Claude CLI + Notion 自动生成每日日报
+# daily-report.sh - 通过 tmux + Claude CLI 交互模式自动生成每日日报
+# Claude 交互模式自动加载 ~/.claude/.mcp.json，无需显式配置 MCP
 
 set -euo pipefail
+
+# 确保 PATH 包含 node/npx
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
 
 # 获取脚本所在目录，确保从任意位置执行都能正确定位项目路径
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # 项目根目录（scripts 的上一级）
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-# 运行配置文件，包含 Claude CLI 路径等信息
+# 运行配置文件
 CONFIG_FILE="$PROJECT_DIR/config.json"
 # 日报 Prompt 模板文件
 PROMPT_FILE="$PROJECT_DIR/prompts/daily-report-prompt.prompt"
+# tmux 执行器
+TMUX_RUNNER="$SCRIPT_DIR/run-claude-tmux.sh"
 # 日志目录与日志文件
 LOG_DIR="$PROJECT_DIR/logs"
 TODAY=$(date +%Y-%m-%d)
 LOG_FILE="$LOG_DIR/daily-${TODAY}.log"
 
-# 从配置中读取 Claude CLI 路径（默认值为 claude）
-CLAUDE_CLI=$(python3 -c "
+# 从配置中读取模型
+CLAUDE_MODEL=$(python3 -c "
 import json
 with open('$CONFIG_FILE') as f:
     config = json.load(f)
-print(config.get('claude', {}).get('cli_path', 'claude'))
+print(config.get('claude', {}).get('model', 'sonnet'))
 ")
 
-# 校验必须的文件与命令是否存在
+# 校验必须的文件
 if [ ! -f "$CONFIG_FILE" ]; then
   echo "Error: config.json not found at $CONFIG_FILE" >&2
   exit 1
@@ -35,8 +41,8 @@ if [ ! -f "$PROMPT_FILE" ]; then
   exit 1
 fi
 
-if ! command -v "$CLAUDE_CLI" &>/dev/null; then
-  echo "Error: Claude CLI not found at $CLAUDE_CLI" >&2
+if [ ! -x "$TMUX_RUNNER" ]; then
+  echo "Error: tmux runner not found at $TMUX_RUNNER" >&2
   exit 1
 fi
 
@@ -76,19 +82,17 @@ with open('$TEMP_PROMPT', 'w') as f:
     f.write(content)
 PYEOF
 
-# Step 3: 通过 stdin 管道调用 Claude CLI（避免命令行参数过大或特殊字符问题）
-echo "[$TODAY] Invoking Claude CLI to generate daily report..." | tee -a "$LOG_FILE"
+# Step 3: 通过 tmux 交互模式调用 Claude 生成日报
+echo "[$TODAY] Invoking Claude via tmux runner..." | tee -a "$LOG_FILE"
+echo "[$TODAY] Model: $CLAUDE_MODEL" | tee -a "$LOG_FILE"
 
-cat "$TEMP_PROMPT" | "$CLAUDE_CLI" -p \
-  --allowedTools "mcp__notion__*" \
-  2>&1 | tee -a "$LOG_FILE"
-
-EXIT_CODE=${PIPESTATUS[1]}
+"$TMUX_RUNNER" "$TEMP_PROMPT" "$LOG_FILE" "$CLAUDE_MODEL" 25
+EXIT_CODE=$?
 
 # 根据退出码记录结果
 if [ $EXIT_CODE -eq 0 ]; then
   echo "[$TODAY] Daily report generated successfully." | tee -a "$LOG_FILE"
 else
-  echo "[$TODAY] Error: Claude CLI exited with code $EXIT_CODE" | tee -a "$LOG_FILE"
+  echo "[$TODAY] Error: tmux runner exited with code $EXIT_CODE" | tee -a "$LOG_FILE"
   exit $EXIT_CODE
 fi

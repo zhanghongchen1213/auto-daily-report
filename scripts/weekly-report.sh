@@ -1,6 +1,10 @@
 #!/bin/bash
-# weekly-report.sh - 通过 Claude + Notion MCP 汇总日报生成周报
+# weekly-report.sh - 通过 tmux + Claude CLI 交互模式汇总日报生成周报
+# Claude 交互模式自动加载 ~/.claude/.mcp.json，无需显式配置 MCP
 set -euo pipefail
+
+# 确保 PATH 包含 node/npx
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
 
 # 定位脚本目录与项目根目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -9,6 +13,8 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="$PROJECT_DIR/config.json"
 # 周报 Prompt 模板
 PROMPT_FILE="${PROJECT_DIR}/prompts/weekly-report-prompt.prompt"
+# tmux 执行器
+TMUX_RUNNER="$SCRIPT_DIR/run-claude-tmux.sh"
 # 日志目录
 LOG_DIR="${PROJECT_DIR}/logs"
 
@@ -18,12 +24,12 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
     exit 1
 fi
 
-# 从配置中读取 Claude CLI 路径
-CLAUDE_CLI=$(python3 -c "
+# 从配置中读取模型
+CLAUDE_MODEL=$(python3 -c "
 import json
 with open('$CONFIG_FILE') as f:
     config = json.load(f)
-print(config.get('claude', {}).get('cli_path', 'claude'))
+print(config.get('claude', {}).get('model', 'sonnet'))
 ")
 
 # 确保日志目录存在
@@ -61,9 +67,9 @@ if [[ ! -f "$PROMPT_FILE" ]]; then
     exit 1
 fi
 
-# 校验 Claude CLI 是否可执行
-if [[ ! -x "$CLAUDE_CLI" ]]; then
-    echo "ERROR: Claude CLI not found or not executable: $CLAUDE_CLI" | tee -a "$LOG_FILE"
+# 校验 tmux 执行器是否可用
+if [[ ! -x "$TMUX_RUNNER" ]]; then
+    echo "ERROR: tmux runner not found or not executable: $TMUX_RUNNER" | tee -a "$LOG_FILE"
     exit 1
 fi
 
@@ -84,21 +90,18 @@ with open('$TEMP_PROMPT', 'w') as f:
     f.write(content)
 PYEOF
 
-echo "Invoking Claude CLI to generate weekly report..." | tee -a "$LOG_FILE"
+echo "Invoking Claude via tmux runner..." | tee -a "$LOG_FILE"
+echo "Model: $CLAUDE_MODEL" | tee -a "$LOG_FILE"
 
-# 通过 stdin 管道调用 Claude CLI（避免命令行参数过大或特殊字符问题）
-cat "$TEMP_PROMPT" | "$CLAUDE_CLI" -p \
-  --allowedTools "mcp__notion__*" \
-  2>&1 | tee -a "$LOG_FILE"
-
-EXIT_CODE=${PIPESTATUS[1]}
+"$TMUX_RUNNER" "$TEMP_PROMPT" "$LOG_FILE" "$CLAUDE_MODEL" 25
+EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "" | tee -a "$LOG_FILE"
     echo "Weekly report generated successfully." | tee -a "$LOG_FILE"
 else
     echo "" | tee -a "$LOG_FILE"
-    echo "ERROR: Claude CLI exited with code $EXIT_CODE" | tee -a "$LOG_FILE"
+    echo "ERROR: tmux runner exited with code $EXIT_CODE" | tee -a "$LOG_FILE"
     exit $EXIT_CODE
 fi
 
