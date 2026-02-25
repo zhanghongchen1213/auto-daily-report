@@ -29,13 +29,9 @@ bash /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/gather-
 
 ## 第三步：查询 Notion 活动记录
 
-运行以下 bash 命令查询 Activity Logs 数据库，筛选今日活动记录：
+使用 Notion MCP 工具查询 Activity Logs 数据库（ID: `2e0be665-a1c7-806e-8cfe-e5af8a80d291`），筛选今日活动记录（Date = `<TODAY_DATE>`）。
 
-```bash
-source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notion-api.sh && notion_query_database "2e0be665-a1c7-806e-8cfe-e5af8a80d291" '{"property":"Date","date":{"equals":"<TODAY_DATE>"}}'
-```
-
-将返回的 JSON 解析，从 `results` 数组的每条记录中提取以下字段：
+从查询结果的每条记录中提取以下字段：
 
 - **Name**: `properties.Name.title[0].plain_text` — 活动标题
 - **Description**: `properties.Description.rich_text[0].plain_text` — 详细说明（核心数据源）
@@ -83,13 +79,9 @@ source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notio
 
 ## 第五步：写入 Notion 日报数据库
 
-运行以下 bash 命令在日报数据库中创建新页面：
+使用 Notion MCP 工具在日报数据库中创建新页面。
 
-```bash
-source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notion-api.sh && notion_create_page '<page_body_json>'
-```
-
-从返回的 JSON 中提取 `id` 字段作为 `PAGE_ID`，后续追加内容时使用。
+记录返回的页面 ID 作为 `PAGE_ID`，后续追加内容时使用。
 
 **数据库 ID**: `c7b19046-7ddf-44ec-b0f2-839577df4cbe`
 
@@ -102,11 +94,7 @@ source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notio
 - **工作时长**（rich_text）: 根据 StartTime/EndTime 估算的总时长
 - **摘要**（rich_text）: 2-3句话的工作概述
 
-**页面内容**：使用 `notion_append_blocks` 函数将日报内容追加到页面。
-
-```bash
-source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notion-api.sh && notion_append_blocks "<PAGE_ID>" '<children_json>'
-```
+**页面内容**：使用 Notion MCP 工具将日报内容追加到页面（PAGE_ID）。
 
 使用以下 block 类型：
 
@@ -120,7 +108,7 @@ source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notio
 
 ## 重要注意事项
 
-1. 所有 Notion 数据操作必须通过 `notion-api.sh` 辅助脚本完成，不要编造数据
+1. 所有 Notion 数据操作必须通过 Notion MCP 工具完成，不要编造数据
 2. 统计表中的数值必须替换为实际数据
 3. 工作时长根据活动记录的 StartTime/EndTime 估算
 4. 如果今日无活动记录和 Git 提交，仍需创建日报并标注"今日无工作记录"
@@ -129,11 +117,7 @@ source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notio
 
 ## 第六步：验证写入结果
 
-运行以下 bash 命令查询日报数据库，确认今日日报已成功创建：
-
-```bash
-source /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/notion-api.sh && notion_query_database "c7b19046-7ddf-44ec-b0f2-839577df4cbe" '{"property":"日期","date":{"equals":"<TODAY_DATE>"}}'
-```
+使用 Notion MCP 工具查询日报数据库（ID: `c7b19046-7ddf-44ec-b0f2-839577df4cbe`），筛选今日日期的记录，确认日报已成功创建。
 
 如果返回的 `results` 数组非空，输出：`[SUCCESS] 日报已成功写入 Notion`
 如果 `results` 为空，输出：`[FAILED] 日报写入失败，请检查日志`

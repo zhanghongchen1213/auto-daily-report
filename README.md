@@ -2,6 +2,9 @@
 
 > 利用 macOS launchd 定时调度，自动收集 Git 提交记录与 Notion 活动日志，通过 Claude Code Skills 生成结构化报告并写入 Notion 数据库。全程无需人工干预，开箱即用。
 
+> **项目地址**：[auto-daily-report](https://github.com/xiaozhangxuezhang/auto-daily-report)
+> 如果觉得有帮助，欢迎 ⭐ Star 支持一下！
+
 ## 功能特性
 
 - **日报自动生成** — 每日收集 Git 提交 + Notion 活动记录，生成结构化日报
@@ -25,11 +28,6 @@
   <br/>
   <em>▲ Notion 数据库中的报告记录</em>
 </p>
-
----
-
-> **项目地址**：[auto-daily-report](https://github.com/xiaozhangxuezhang/auto-daily-report)
-> 如果觉得有帮助，欢迎 ⭐ Star 支持一下！
 
 ## 系统要求
 
@@ -163,8 +161,7 @@ auto-daily-report/
 │           └── SKILL.md.tpl             # 月报 Skill 模板
 ├── scripts/
 │   ├── run-claude-tmux.sh               # tmux 自动化执行器（核心调度脚本）
-│   ├── gather-git-logs.sh               # Git 提交日志收集
-│   └── notion-api.sh                    # Notion API 辅助函数库
+│   └── gather-git-logs.sh               # Git 提交日志收集
 ├── launchd/
 │   ├── com.auto-report.daily.plist      # 日报定时任务
 │   ├── com.auto-report.weekly.plist     # 周报定时任务
