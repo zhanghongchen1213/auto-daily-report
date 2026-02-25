@@ -15,7 +15,7 @@
 ```json
 {
   "filter": {
-    "property": "日期",
+    "property": "Date",
     "date": {
       "equals": "{{TODAY_DATE}}"
     }
@@ -83,7 +83,7 @@
 
 ## 第四步：写入 Notion 日报数据库
 
-使用 `mcp__notion__POST__v1_pages` 工具在日报数据库（ID: `2e0be665-a1c7-8110-b3ef-f939ed259679`）中创建新页面。
+使用 `mcp__notion__POST__v1_pages` 工具在日报数据库（ID: `c7b19046-7ddf-44ec-b0f2-839577df4cbe`）中创建新页面。
 
 页面属性设置：
 - **标题（Name/Title）**: "{{TODAY_DATE}} 每日工作日报"
