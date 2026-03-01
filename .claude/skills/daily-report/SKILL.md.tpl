@@ -22,7 +22,7 @@ date +%Y-%m-%d
 运行以下脚本收集今日所有配置仓库的 Git 提交记录：
 
 ```bash
-bash {{PROJECT_DIR}}/scripts/gather-git-logs.sh
+bash {{PROJECT_DIR}}/scripts/gather-git-logs.sh --date "$TODAY_DATE"
 ```
 
 将输出结果记为 `GIT_LOGS`，作为日报的补充数据源。

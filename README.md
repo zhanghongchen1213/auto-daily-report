@@ -1,4 +1,4 @@
-# 基于 Claude Code Skills + Notion 的工作日报/周报/月报自动化管理系统
+# 基于 Openclaw + Notion 的工作日报/周报/月报自动化管理系统
 
 > 通过 [OpenClaw](https://github.com/ComposioHQ/secure-openclaw) 定时调度，自动收集 Git 提交记录与 Notion 活动日志，利用 Claude Code Skills 生成结构化报告并写入 Notion 数据库。全程无需人工干预，跨平台开箱即用。
 
@@ -315,9 +315,15 @@ tail -50 logs/daily-report-$(date +%Y%m%d).log
 
 编辑 `.claude/skills/*/SKILL.md.tpl` 模板文件，修改报告生成逻辑，然后运行 `bash test.sh` 重新同步。
 
-**Q: 远程仓库的提交记录如何收集？**
+**Q: 远程仓库和分支提交如何收集？**
 
-`gather-git-logs.sh` 会自动将远程 URL clone 到 `.repo-cache/` 目录，后续执行时自动 `git pull` 更新。
+`gather-git-logs.sh` 会自动将远程 URL clone 到 `.repo-cache/` 目录，后续执行时自动 `git fetch --all --prune` 更新引用；统计时默认使用 `git log --all`，会覆盖本地分支和远程跟踪分支（如 `origin/*`）。
+
+若需复盘历史日期，可执行：
+
+```bash
+bash scripts/gather-git-logs.sh --date 2026-02-27
+```
 
 ## License
 
