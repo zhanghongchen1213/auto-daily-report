@@ -6,10 +6,10 @@
   },
   "notion": {
     "databases": {
-      "activity_logs": "2e0be665-a1c7-8020-a198-000b1526ac03",
-      "daily_report": "fd9e5cb4-2ab8-488f-a16c-9f1b3ced7d66",
-      "weekly_report": "7efbdb06-82de-4688-834c-7a377db93077",
-      "monthly_report": "2dfc4066-5e1c-484b-bbaf-5a99a4b8490f"
+      "activity_logs": "2e0be665-a1c7-806e-8cfe-e5af8a80d291",
+      "daily_report": "c7b19046-7ddf-44ec-b0f2-839577df4cbe",
+      "weekly_report": "7ccdc19a-e680-478b-950f-d89399001571",
+      "monthly_report": "7b70e2ab-eae8-4f4e-b1b3-4054b4df0a48"
     }
   }
 }
