@@ -35,7 +35,7 @@ print(f'WEEK_END_MMDD={sunday.strftime(\"%m/%d\")}')
 
 调用 `mcp__notion__API-query-data-source`，参数如下：
 
-- **data_source_id**: `c7b19046-7ddf-44ec-b0f2-839577df4cbe`
+- **data_source_id**: `fd9e5cb4-2ab8-488f-a16c-9f1b3ced7d66`
 - **filter**:
 
 ```json
@@ -122,7 +122,7 @@ print(f'WEEK_END_MMDD={sunday.strftime(\"%m/%d\")}')
 
 使用 `mcp__notion__API-post-page` 在周报数据库中创建新页面。
 
-**数据库 ID**: `7ccdc19a-e680-478b-950f-d89399001571`
+**数据库 ID**: `7efbdb06-82de-4688-834c-7a377db93077`
 
 **页面属性**：
 - **周报标题（Title）**: "<WEEK_START_YEAR>年第<WEEK_NUMBER>周工作周报 (<WEEK_START_MMDD> - <WEEK_END_MMDD>)"
@@ -159,7 +159,7 @@ print(f'WEEK_END_MMDD={sunday.strftime(\"%m/%d\")}')
 使用 `mcp__notion__API-query-data-source` 查询周报数据库，确认本周周报已成功创建。
 
 参数：
-- **data_source_id**: `7ccdc19a-e680-478b-950f-d89399001571`
+- **data_source_id**: `7efbdb06-82de-4688-834c-7a377db93077`
 - **filter**:
 
 ```json

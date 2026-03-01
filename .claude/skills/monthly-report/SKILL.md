@@ -33,15 +33,25 @@ print(f'MONTH_NUM={today.strftime(\"%m\")}')
 
 调用 `mcp__notion__API-query-data-source`，参数如下：
 
-- **data_source_id**: `7ccdc19a-e680-478b-950f-d89399001571`
+- **data_source_id**: `7efbdb06-82de-4688-834c-7a377db93077`
 - **filter**:
 
 ```json
 {
-  "property": "周期",
-  "date": {
-    "on_or_after": "<MONTH_START>"
-  }
+  "and": [
+    {
+      "property": "周期",
+      "date": {
+        "on_or_after": "<MONTH_START>"
+      }
+    },
+    {
+      "property": "周期",
+      "date": {
+        "on_or_before": "<MONTH_END>"
+      }
+    }
+  ]
 }
 ```
 
@@ -55,8 +65,6 @@ print(f'MONTH_NUM={today.strftime(\"%m\")}')
   }
 ]
 ```
-
-注意：需要额外过滤 period 的 end 日期不超过 `<MONTH_END>`，确保只包含本月范围内的周报。
 
 ## 第三步：读取每份周报的完整内容
 
@@ -124,7 +132,7 @@ print(f'MONTH_NUM={today.strftime(\"%m\")}')
 
 使用 `mcp__notion__API-post-page` 在月报数据库中创建新页面。
 
-**数据库 ID**: `7b70e2ab-eae8-4f4e-b1b3-4054b4df0a48`
+**数据库 ID**: `2dfc4066-5e1c-484b-bbaf-5a99a4b8490f`
 
 **页面属性**：
 - **月报标题（Title）**: "<MONTH_YEAR>年<MONTH_NUM>月工作月报"
@@ -162,7 +170,7 @@ print(f'MONTH_NUM={today.strftime(\"%m\")}')
 使用 `mcp__notion__API-query-data-source` 查询月报数据库，确认本月月报已成功创建。
 
 参数：
-- **data_source_id**: `7b70e2ab-eae8-4f4e-b1b3-4054b4df0a48`
+- **data_source_id**: `2dfc4066-5e1c-484b-bbaf-5a99a4b8490f`
 - **filter**:
 
 ```json

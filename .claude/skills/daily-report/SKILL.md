@@ -29,7 +29,7 @@ bash /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/gather-
 
 ## 第三步：查询 Notion 活动记录
 
-使用 Notion MCP 工具查询 Activity Logs 数据库（ID: `2e0be665-a1c7-806e-8cfe-e5af8a80d291`），筛选今日活动记录（Date = `<TODAY_DATE>`）。
+使用 Notion MCP 工具查询 Activity Logs 数据库（ID: `2e0be665-a1c7-8020-a198-000b1526ac03`），筛选今日活动记录（Date = `<TODAY_DATE>`）。
 
 从查询结果的每条记录中提取以下字段：
 
@@ -83,7 +83,7 @@ bash /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/gather-
 
 记录返回的页面 ID 作为 `PAGE_ID`，后续追加内容时使用。
 
-**数据库 ID**: `c7b19046-7ddf-44ec-b0f2-839577df4cbe`
+**数据库 ID**: `fd9e5cb4-2ab8-488f-a16c-9f1b3ced7d66`
 
 **页面属性**（使用数据库实际属性名）：
 - **日报标题**（title）: "<TODAY_DATE> 每日工作日报"
@@ -117,7 +117,7 @@ bash /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/gather-
 
 ## 第六步：验证写入结果
 
-使用 Notion MCP 工具查询日报数据库（ID: `c7b19046-7ddf-44ec-b0f2-839577df4cbe`），筛选今日日期的记录，确认日报已成功创建。
+使用 Notion MCP 工具查询日报数据库（ID: `fd9e5cb4-2ab8-488f-a16c-9f1b3ced7d66`），筛选今日日期的记录，确认日报已成功创建。
 
 如果返回的 `results` 数组非空，输出：`[SUCCESS] 日报已成功写入 Notion`
 如果 `results` 为空，输出：`[FAILED] 日报写入失败，请检查日志`
