@@ -38,10 +38,20 @@ print(f'MONTH_NUM={today.strftime(\"%m\")}')
 
 ```json
 {
-  "property": "周期",
-  "date": {
-    "on_or_after": "<MONTH_START>"
-  }
+  "and": [
+    {
+      "property": "周期",
+      "date": {
+        "on_or_after": "<MONTH_START>"
+      }
+    },
+    {
+      "property": "周期",
+      "date": {
+        "on_or_before": "<MONTH_END>"
+      }
+    }
+  ]
 }
 ```
 
@@ -55,8 +65,6 @@ print(f'MONTH_NUM={today.strftime(\"%m\")}')
   }
 ]
 ```
-
-注意：需要额外过滤 period 的 end 日期不超过 `<MONTH_END>`，确保只包含本月范围内的周报。
 
 ## 第三步：读取每份周报的完整内容
 
