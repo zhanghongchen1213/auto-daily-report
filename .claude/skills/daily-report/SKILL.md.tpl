@@ -7,6 +7,54 @@ description: 自动生成每日工作日报，查询 Notion 活动记录和 Git 
 
 你是一个专业的每日工作总结分析专家。请按照以下步骤，查询今日活动记录，结合 Git 提交日志，生成结构化日报并写入 Notion。
 
+## 配置信息
+
+**Notion API 配置：**
+- API Key: `{{NOTION_API_KEY}}`
+- API Version: `2022-06-28`
+- API Endpoint: `https://api.notion.com/v1`
+
+**数据库 ID：**
+- Activity Logs: `{{ACTIVITY_LOGS_DB_ID}}`
+- 每日工作日报: `{{DAILY_REPORT_DB_ID}}`
+
+## Notion API 请求方式
+
+使用 Node.js HTTPS 模块直接调用 Notion REST API，请求格式如下：
+
+```javascript
+const https = require('https');
+
+function notionRequest(path, method = 'GET', body = null) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.notion.com',
+      path: `/v1${path}`,
+      method: method,
+      headers: {
+        'Authorization': `Bearer {{NOTION_API_KEY}}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28'
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          if (result.error || result.code) reject(new Error(result.message));
+          else resolve(result);
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+```
+
 ## 第一步：获取今日日期
 
 运行以下命令获取今日日期：
@@ -29,14 +77,29 @@ bash {{PROJECT_DIR}}/scripts/gather-git-logs.sh --date "$TODAY_DATE"
 
 ## 第三步：查询 Notion 活动记录
 
-使用 Notion MCP 工具查询 Activity Logs 数据库（ID: `{{ACTIVITY_LOGS_DB_ID}}`），筛选今日活动记录（Date = `<TODAY_DATE>`）。
+使用 Notion API 查询 Activity Logs 数据库，筛选今日活动记录。
+
+**API 调用：** `POST /databases/{db_id}/query`
+
+```javascript
+const result = await notionRequest(
+  `/databases/{{ACTIVITY_LOGS_DB_ID}}/query`,
+  'POST',
+  {
+    filter: {
+      property: 'Date',
+      date: { equals: TODAY_DATE }
+    },
+    page_size: 100
+  }
+);
+```
 
 从查询结果的每条记录中提取以下字段：
-
-- **Name**: `properties.Name.title[0].plain_text` — 活动标题
-- **Description**: `properties.Description.rich_text[0].plain_text` — 详细说明（核心数据源）
-- **Tags**: `properties.Tags.multi_select[].name` — 工作领域标签
-- **StartTime / EndTime**: `properties.StartTime` / `properties.EndTime` — 时间信息
+- **Name**: `properties.Name?.title?.[0]?.plain_text || '无标题'`
+- **Description**: `properties.Description?.rich_text?.[0]?.plain_text || ''`
+- **Tags**: `properties.Tags?.multi_select?.map(t => t.name) || []`
+- **Date**: `properties.Date?.date?.start`
 
 ## 第四步：分析与生成日报内容
 
@@ -79,45 +142,69 @@ bash {{PROJECT_DIR}}/scripts/gather-git-logs.sh --date "$TODAY_DATE"
 
 ## 第五步：写入 Notion 日报数据库
 
-使用 Notion MCP 工具在日报数据库中创建新页面。
+使用 Notion API 在日报数据库中创建新页面。
 
-记录返回的页面 ID 作为 `PAGE_ID`，后续追加内容时使用。
+**API 调用：** `POST /pages`
 
-**数据库 ID**: `{{DAILY_REPORT_DB_ID}}`
+```javascript
+const result = await notionRequest('/pages', 'POST', {
+  parent: { database_id: '{{DAILY_REPORT_DB_ID}}' },
+  properties: {
+    '日报标题': {
+      title: [{ text: { content: `${TODAY_DATE} 每日工作日报` } }]
+    },
+    '日期': {
+      date: { start: TODAY_DATE }
+    },
+    '状态': {
+      status: { name: '已完成' }
+    },
+    '活动记录数': {
+      number: activities.length
+    }
+  },
+  children: [
+    {
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [{ type: 'text', text: { content: 日报内容 } }]
+      }
+    }
+  ]
+});
+```
 
-**页面属性**（使用数据库实际属性名）：
-- **日报标题**（title）: "<TODAY_DATE> 每日工作日报"
-- **日期**（date）: start = <TODAY_DATE>
-- **状态**（status）: "已完成"
-- **工作领域**（multi_select）: 从活动记录 Tags 中提取的领域标签
-- **活动记录数**（number）: 查询到的活动记录总数
-- **工作时长**（rich_text）: 根据 StartTime/EndTime 估算的总时长
-- **摘要**（rich_text）: 2-3句话的工作概述
-
-**页面内容**：使用 Notion MCP 工具将日报内容追加到页面（PAGE_ID）。
-
-使用以下 block 类型：
-
-- `heading_2` — 章节标题（如 "📋 今日工作概览"）
-- `heading_3` — 子标题（如工作领域名称）
-- `bulleted_list_item` — 列表项
-- `table` — 数据统计表格
-- `paragraph` — 正文段落
-
-**注意**：Notion API 每次最多追加 100 个 block，如果内容较多需要分批写入。
+**注意事项：**
+- Notion API 每次最多追加 100 个 block
+- 如果内容较多需要分批写入
+- 大段文本可以拆分成多个 paragraph block
 
 ## 重要注意事项
 
-1. 所有 Notion 数据操作必须通过 Notion MCP 工具完成，不要编造数据
+1. 所有 Notion 数据操作必须通过 Notion REST API 完成
 2. 统计表中的数值必须替换为实际数据
-3. 工作时长根据活动记录的 StartTime/EndTime 估算
-4. 如果今日无活动记录和 Git 提交，仍需创建日报并标注"今日无工作记录"
-5. 日报语言使用中文
-6. 保持客观、简洁的写作风格
+3. 如果今日无活动记录和 Git 提交，仍需创建日报并标注"今日无工作记录"
+4. 日报语言使用中文
+5. 保持客观、简洁的写作风格
 
 ## 第六步：验证写入结果
 
-使用 Notion MCP 工具查询日报数据库（ID: `{{DAILY_REPORT_DB_ID}}`），筛选今日日期的记录，确认日报已成功创建。
+使用 Notion API 查询日报数据库，筛选今日日期的记录，确认日报已成功创建。
 
-如果返回的 `results` 数组非空，输出：`[SUCCESS] 日报已成功写入 Notion`
-如果 `results` 为空，输出：`[FAILED] 日报写入失败，请检查日志`
+```javascript
+const result = await notionRequest(
+  `/databases/{{DAILY_REPORT_DB_ID}}/query`,
+  'POST',
+  {
+    filter: {
+      property: '日期',
+      date: { equals: TODAY_DATE }
+    },
+    page_size: 10
+  }
+);
+```
+
+如果 `result.results` 数组非空，输出：`[SUCCESS] 日报已成功写入 Notion`
+如果 `result.results` 为空，输出：`[FAILED] 日报写入失败，请检查日志`

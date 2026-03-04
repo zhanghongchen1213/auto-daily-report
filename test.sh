@@ -20,6 +20,7 @@ else
   read_cfg() { python3 -c "import json; print(json.load(open('$CONFIG'))$(echo "$1" | sed "s/\./']['/g; s/^/['/; s/$/']/" ))"; }
 fi
 
+NOTION_API_KEY=$(read_cfg '.notion.api_key')
 ACTIVITY_LOGS_DB_ID=$(read_cfg '.notion.databases.activity_logs')
 DAILY_REPORT_DB_ID=$(read_cfg '.notion.databases.daily_report')
 WEEKLY_REPORT_DB_ID=$(read_cfg '.notion.databases.weekly_report')
@@ -36,6 +37,7 @@ for skill in daily-report weekly-report monthly-report; do
   fi
 
   sed \
+    -e "s|{{NOTION_API_KEY}}|$NOTION_API_KEY|g" \
     -e "s|{{PROJECT_DIR}}|$SCRIPT_DIR|g" \
     -e "s|{{ACTIVITY_LOGS_DB_ID}}|$ACTIVITY_LOGS_DB_ID|g" \
     -e "s|{{DAILY_REPORT_DB_ID}}|$DAILY_REPORT_DB_ID|g" \
