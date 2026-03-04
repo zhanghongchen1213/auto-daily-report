@@ -1,0 +1,16 @@
+{
+  "github": {
+    "repos": [
+      "/path/to/your/repo"
+    ]
+  },
+  "notion": {
+    "api_key": "ntn_YOUR_NOTION_API_KEY_HERE",
+    "databases": {
+      "activity_logs": "YOUR_ACTIVITY_LOGS_DATABASE_ID",
+      "daily_report": "YOUR_DAILY_REPORT_DATABASE_ID",
+      "weekly_report": "YOUR_WEEKLY_REPORT_DATABASE_ID",
+      "monthly_report": "YOUR_MONTHLY_REPORT_DATABASE_ID"
+    }
+  }
+}

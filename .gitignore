@@ -1,2 +1,4 @@
 logs/
 .repo-cache/
+.claude/skills/*/SKILL.md
+config.json
