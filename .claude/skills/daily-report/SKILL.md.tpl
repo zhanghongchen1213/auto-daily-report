@@ -70,7 +70,7 @@ date +%Y-%m-%d
 运行以下脚本收集今日所有配置仓库的 Git 提交记录：
 
 ```bash
-bash {{PROJECT_DIR}}/scripts/gather-git-logs.sh --date "$TODAY_DATE"
+bash /Users/xiaozhangxuezhang/Documents/GitHub/auto-daily-report/scripts/gather-git-logs.sh --date "$TODAY_DATE"
 ```
 
 将输出结果记为 `GIT_LOGS`，作为日报的补充数据源。
@@ -140,13 +140,180 @@ const result = await notionRequest(
 | 涉及领域 | X个 |
 | Git提交数 | X次 |
 
-## 第五步：写入 Notion 日报数据库
+## 第五步：Markdown 转换为 Notion 原生块格式
+
+**重要：** 必须将 Markdown 内容转换为 Notion 原生块格式，而不是直接写入 Markdown 原格式。
+
+使用以下转换函数：
+
+```javascript
+function markdownToNotionBlocks(markdown) {
+  const blocks = [];
+  const lines = markdown.split('\n');
+  let inCodeBlock = false;
+  let codeBlockLanguage = '';
+  let codeBlockContent = [];
+  let inTable = false;
+  let tableRows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+
+    // 代码块处理
+    if (line.startsWith('```')) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeBlockLanguage = line.slice(3).trim() || 'text';
+        codeBlockContent = [];
+      } else {
+        inCodeBlock = false;
+        blocks.push({
+          object: 'block',
+          type: 'code',
+          code: {
+            language: codeBlockLanguage,
+            rich_text: [{ type: 'text', text: { content: codeBlockContent.join('\n') } }]
+          }
+        });
+      }
+      continue;
+    }
+    if (inCodeBlock) {
+      codeBlockContent.push(line);
+      continue;
+    }
+
+    // 跳过空行
+    if (line.trim() === '') {
+      continue;
+    }
+
+    // 标题处理
+    if (line.startsWith('### ')) {
+      blocks.push({
+        object: 'block',
+        type: 'heading_3',
+        heading_3: {
+          rich_text: [{ type: 'text', text: { content: line.slice(4).trim() } }]
+        }
+      });
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      blocks.push({
+        object: 'block',
+        type: 'heading_2',
+        heading_2: {
+          rich_text: [{ type: 'text', text: { content: line.slice(3).trim() } }]
+        }
+      });
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      blocks.push({
+        object: 'block',
+        type: 'heading_1',
+        heading_1: {
+          rich_text: [{ type: 'text', text: { content: line.slice(2).trim() } }]
+        }
+      });
+      continue;
+    }
+
+    // 表格处理
+    if (line.startsWith('|') && line.includes('|')) {
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
+      }
+      // 跳过分隔线 |---|---|
+      if (!line.includes('---')) {
+        const cells = line.split('|').map(c => c.trim()).filter(c => c !== '');
+        tableRows.push(cells);
+      }
+      // 如果下一行不是表格行，或者是最后一行，则结束表格
+      const nextLine = lines[i + 1];
+      if (!nextLine || !nextLine.startsWith('|')) {
+        inTable = false;
+        if (tableRows.length > 0) {
+          const tableWidth = tableRows[0].length;
+          blocks.push({
+            object: 'block',
+            type: 'table',
+            table: {
+              table_width: tableWidth,
+              has_column_header: true,
+              has_row_header: false,
+              children: tableRows.map(row => ({
+                type: 'table_row',
+                table_row: {
+                  cells: row.map(cell => [{ type: 'text', text: { content: cell } }])
+                }
+              }))
+            }
+          });
+        }
+      }
+      continue;
+    }
+
+    // 列表处理
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      const content = line.slice(2).trim();
+      // 检查是否是加粗标题格式：- **成果标题**: 描述
+      const boldMatch = content.match(/^\*\*(.*?)\*\*:\s*(.*)$/);
+      if (boldMatch) {
+        blocks.push({
+          object: 'block',
+          type: 'bulleted_list_item',
+          bulleted_list_item: {
+            rich_text: [
+              { type: 'text', text: { content: boldMatch[1] }, annotations: { bold: true } },
+              { type: 'text', text: { content: ': ' + boldMatch[2] } }
+            ]
+          }
+        });
+      } else {
+        blocks.push({
+          object: 'block',
+          type: 'bulleted_list_item',
+          bulleted_list_item: {
+            rich_text: [{ type: 'text', text: { content: content } }]
+          }
+        });
+      }
+      continue;
+    }
+
+    // 普通段落
+    blocks.push({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [{ type: 'text', text: { content: line } }]
+      }
+    });
+  }
+
+  return blocks;
+}
+```
+
+## 第六步：写入 Notion 日报数据库
 
 使用 Notion API 在日报数据库中创建新页面。
 
 **API 调用：** `POST /pages`
 
 ```javascript
+const notionBlocks = markdownToNotionBlocks(日报内容);
+
+// 分批写入，每次最多 100 个 block
+const batchSize = 100;
+let pageId = null;
+
+// 第一批：创建页面并写入前 100 个 block
+const firstBatch = notionBlocks.slice(0, batchSize);
 const result = await notionRequest('/pages', 'POST', {
   parent: { database_id: '{{DAILY_REPORT_DB_ID}}' },
   properties: {
@@ -163,22 +330,25 @@ const result = await notionRequest('/pages', 'POST', {
       number: activities.length
     }
   },
-  children: [
-    {
-      object: 'block',
-      type: 'paragraph',
-      paragraph: {
-        rich_text: [{ type: 'text', text: { content: 日报内容 } }]
-      }
-    }
-  ]
+  children: firstBatch
 });
+
+pageId = result.id;
+
+// 后续批次：追加剩余 block
+for (let i = batchSize; i < notionBlocks.length; i += batchSize) {
+  const batch = notionBlocks.slice(i, i + batchSize);
+  await notionRequest(`/blocks/${pageId}/children`, 'PATCH', { children: batch });
+}
 ```
 
 **注意事项：**
 - Notion API 每次最多追加 100 个 block
-- 如果内容较多需要分批写入
-- 大段文本可以拆分成多个 paragraph block
+- 使用 `markdownToNotionBlocks()` 函数将 Markdown 转换为 Notion 原生格式
+- 标题会变为 heading_1/heading_2/heading_3 块
+- 表格会变为 table 块
+- 列表会变为 bulleted_list_item 块
+- 代码块会变为 code 块
 
 ## 重要注意事项
 
