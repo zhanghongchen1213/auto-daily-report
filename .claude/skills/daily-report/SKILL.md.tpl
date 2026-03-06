@@ -109,6 +109,10 @@ const result = await notionRequest(
 2. **分类整理**: 按工作领域（固件开发、硬件开发、插件开发、系统优化等）分组
 3. **重点提炼**: 提取关键成果、技术要点、遇到的问题
 4. **计划识别**: 从描述中识别未完成任务或下一步计划
+5. **提取属性数据**:
+   - `workDomains`: 涉及的工作领域数组，如 ['固件开发', '文档编写']
+   - `workHours`: 工作时长文本，如 "8小时" 或从活动记录计算
+   - `summary`: 2-3句话的工作摘要，提取自"今日工作概览"章节
 
 生成以下 6 个章节的日报内容：
 
@@ -328,6 +332,15 @@ const result = await notionRequest('/pages', 'POST', {
     },
     '活动记录数': {
       number: activities.length
+    },
+    '工作领域': {
+      multi_select: workDomains.map(domain => ({ name: domain }))
+    },
+    '工作时长': {
+      rich_text: [{ text: { content: workHours } }]
+    },
+    '摘要': {
+      rich_text: [{ text: { content: summary } }]
     }
   },
   children: firstBatch

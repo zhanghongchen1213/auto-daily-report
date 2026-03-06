@@ -134,6 +134,10 @@ for (const page of result.results) {
 3. **成果聚合**: 汇总所有已完成的关键成果和里程碑
 4. **问题归类**: 将各天遇到的问题按类别归类，识别反复出现的阻塞项
 5. **领域统计**: 统计涉及的工作领域和每个领域的投入程度
+6. **提取属性数据**:
+   - `workDomains`: 涉及的工作领域数组，如 ['固件开发', '文档编写', '系统优化']
+   - `workDaysCount`: 本周实际工作天数（有日报的天数）
+   - `summary`: 3-5句话的周报摘要，提取自"本周工作概览"章节
 
 ## 第五步：生成周报内容
 
@@ -358,6 +362,18 @@ const result = await notionRequest('/pages', 'POST', {
     },
     '总活动记录数': {
       number: totalActivityCount
+    },
+    '工作领域': {
+      multi_select: workDomains.map(domain => ({ name: domain }))
+    },
+    '涉及领域数': {
+      number: workDomains.length
+    },
+    '工作日天数': {
+      number: workDaysCount
+    },
+    '摘要': {
+      rich_text: [{ text: { content: summary } }]
     }
   },
   children: firstBatch

@@ -129,6 +129,10 @@ for (const page of result.results) {
 4. **问题汇总**: 收集所有周报中提到的问题、风险和阻塞项
 5. **领域统计**: 统计涉及的工作领域
 6. **数据统计**: 统计工作周数、工作天数、活动记录总数等
+7. **提取属性数据**:
+   - `workDomains`: 涉及的工作领域数组，如 ['固件开发', '文档编写', '系统优化']
+   - `weekCount`: 本月实际工作周数（有周报的周数）
+   - `summary`: 3-5句话的月报摘要，提取自"本月工作概览"章节
 
 ## 第五步：生成月报内容
 
@@ -361,6 +365,18 @@ const result = await notionRequest('/pages', 'POST', {
     },
     '总活动记录数': {
       number: totalActivityCount
+    },
+    '工作领域': {
+      multi_select: workDomains.map(domain => ({ name: domain }))
+    },
+    '涉及领域数': {
+      number: workDomains.length
+    },
+    '工作周数': {
+      number: weekCount
+    },
+    '摘要': {
+      rich_text: [{ text: { content: summary } }]
     }
   },
   children: firstBatch
