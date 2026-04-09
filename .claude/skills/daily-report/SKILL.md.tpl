@@ -123,16 +123,19 @@ for REPO_PATH in "${REPO_LIST[@]}"; do
   # 同步远端引用
   git fetch --all --prune 2>/dev/null || true
 
-  # 获取所有分支名（本地 + 远程去重）
-  BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ 2>/dev/null | sed 's|^origin/||' | grep -v '^HEAD$' | sort -u)
+  # 获取所有分支名（本地 + 远程去重，排除裸 origin 和 HEAD）
+  BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ 2>/dev/null | sed 's|^origin/||' | grep -v -E '^(HEAD|origin)$' | sort -u)
 
   REPO_HAS_COMMITS=false
 
   for BRANCH in $BRANCHES; do
-    # 确定引用：优先本地分支，其次远程
-    REF="$BRANCH"
-    if ! git rev-parse --verify "$BRANCH" &>/dev/null; then
-      REF="origin/$BRANCH"
+    # 确定引用：使用全限定路径避免歧义
+    if git rev-parse --verify "refs/heads/$BRANCH" &>/dev/null; then
+      REF="refs/heads/$BRANCH"
+    elif git rev-parse --verify "refs/remotes/origin/$BRANCH" &>/dev/null; then
+      REF="refs/remotes/origin/$BRANCH"
+    else
+      continue
     fi
 
     # 统计该分支当日提交数

@@ -117,15 +117,19 @@ for REPO_PATH in $REPOS; do
   cd "$REPO_PATH"
   git fetch --all --prune 2>/dev/null || true
 
-  # 获取所有分支名（本地 + 远程去重）
-  BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ 2>/dev/null | sed 's|^origin/||' | grep -v '^HEAD$' | sort -u)
+  # 获取所有分支名（本地 + 远程去重，排除裸 origin 和 HEAD）
+  BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ 2>/dev/null | sed 's|^origin/||' | grep -v -E '^(HEAD|origin)$' | sort -u)
 
   REPO_HAS_COMMITS=false
 
   for BRANCH in $BRANCHES; do
-    REF="$BRANCH"
-    if ! git rev-parse --verify "$BRANCH" &>/dev/null; then
-      REF="origin/$BRANCH"
+    # 确定引用：使用全限定路径避免歧义
+    if git rev-parse --verify "refs/heads/$BRANCH" &>/dev/null; then
+      REF="refs/heads/$BRANCH"
+    elif git rev-parse --verify "refs/remotes/origin/$BRANCH" &>/dev/null; then
+      REF="refs/remotes/origin/$BRANCH"
+    else
+      continue
     fi
 
     COMMIT_COUNT=$(git log "$REF" --since="$WEEK_START 00:00:00" --until="$WEEK_END 23:59:59" --oneline --no-merges 2>/dev/null | wc -l | tr -d ' ')
